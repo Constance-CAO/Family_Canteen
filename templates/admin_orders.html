@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>订单管理 - 熊家食堂</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #fef7e8; color: #3a2800; font-family: 'Segoe UI','Noto Sans SC',system-ui; }
+        h1 { color: #3a2800; font-weight: 700; }
+        .btn-secondary { background: #f0e5c8; border-color: #e0ce9a; color: #7a5c1e; }
+        .btn-secondary:hover { background: #e3d3a8; border-color: #ccba7a; color: #3a2800; }
+        .btn-info { background: #f5d98a; border-color: #e0c060; color: #3a2800; }
+        .btn-info:hover { background: #e9c870; border-color: #d4a12b; color: #3a2800; }
+        .table thead th { background: #faefc9; color: #7a5c1e; font-weight: 600; border-color: #e8d8a0; }
+        .table-bordered > :not(caption) > * > * { border-color: #e8d8a0; }
+        .table-striped > tbody > tr:nth-of-type(odd) > * { --bs-table-accent-bg: rgba(234,215,155,0.1); }
+        .modal-content { border: 1px solid #e8d8a0; border-radius: 20px; overflow: hidden; }
+        .modal-header { background: #faefc9; border-bottom: 1px solid #e8d8a0; }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>📋 订单管理</h1>
+        <a href="/admin/dashboard" class="btn btn-secondary">返回仪表板</a>
+    </div>
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>提交时间</th><th>订餐人</th><th>点菜周（周一）</th><th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ '%04d-%02d-%02d %02d:%02d' | format(order.submitted_at.year, order.submitted_at.month, order.submitted_at.day, order.submitted_at.hour, order.submitted_at.minute) }}</td>
+                <td>{{ order.customer_name }}</td>
+                <td>{{ order.week_monday.year }}年{{ order.week_monday.month }}月{{ order.week_monday.day }}日</td>
+                <td>
+                    <a href="/admin/download_txt/{{ order.txt_filename }}" class="btn btn-sm btn-success">下载TXT</a>
+                    <button class="btn btn-sm btn-info" onclick="viewOrder('{{ order.txt_filename }}')">查看详情</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- 查看订单模态框 -->
+<div class="modal fade" id="orderModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">订单详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="orderContent" style="white-space: pre-wrap; background: #faefc9; padding: 15px; border-radius: 12px; color: #3a2800; border: 1px solid #e8d8a0;"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function viewOrder(filename) {
+        fetch('/admin/download_txt/' + filename)
+            .then(res => res.text())
+            .then(text => {
+                document.getElementById('orderContent').innerText = text;
+                var modal = new bootstrap.Modal(document.getElementById('orderModal'));
+                modal.show();
+            });
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

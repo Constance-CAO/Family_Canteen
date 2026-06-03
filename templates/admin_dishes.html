@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>菜品管理 - 熊家食堂</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .dish-img-thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 8px; }
+        /* 暖金配色 */
+        body { background: #fef7e8; color: #3a2800; font-family: 'Segoe UI','Noto Sans SC',system-ui; }
+        h1 { color: #3a2800; font-weight: 700; }
+        .btn-primary { background: #e9b741; border-color: #e9b741; color: #3a2800; font-weight: 500; }
+        .btn-primary:hover,.btn-primary:focus,.btn-primary:active { background: #d4a12b !important; border-color: #d4a12b !important; color: #3a2800 !important; box-shadow: 0 0 0 0.2rem rgba(212,161,43,0.3) !important; }
+        .btn-warning { background: #e9b741; border-color: #e9b741; color: #3a2800; font-weight: 500; }
+        .btn-warning:hover { background: #d4a12b; border-color: #d4a12b; color: #3a2800; }
+        .btn-secondary { background: #f0e5c8; border-color: #e0ce9a; color: #7a5c1e; }
+        .btn-secondary:hover { background: #e3d3a8; border-color: #ccba7a; color: #3a2800; }
+        .form-control:focus { border-color: #e9b741; box-shadow: 0 0 0 0.2rem rgba(233,183,65,0.22); }
+        .table thead th { background: #faefc9; color: #7a5c1e; font-weight: 600; border-color: #e8d8a0; }
+        .table-bordered > :not(caption) > * > * { border-color: #e8d8a0; }
+        .table-striped > tbody > tr:nth-of-type(odd) > * { --bs-table-accent-bg: rgba(234,215,155,0.1); }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>🍽️ 菜品管理</h1>
+        <div>
+            <a href="/admin/dashboard" class="btn btn-secondary">返回仪表板</a>
+            <a href="/admin/dish/new" class="btn btn-primary">+ 新增菜品</a>
+        </div>
+    </div>
+    <input type="text" id="searchInput" class="form-control mb-3" placeholder="搜索菜名...">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr><th>ID</th><th>图片</th><th>菜名</th><th>分类</th><th>便当兼容</th><th>预处理天数</th><th>烹饪分钟</th><th>操作</th></tr>
+        </thead>
+        <tbody id="dishTableBody">
+            {% for dish in dishes %}
+            <tr class="dish-row">
+                <td>{{ dish.id }}</td>
+                <td><img src="{{ '/' + dish.image_url if dish.image_url else '/static/img/placeholder.png' }}" class="dish-img-thumb" onerror="this.src='/static/img/placeholder.png'"></td>
+                <td class="dish-name">{{ dish.name }}</td>
+                <td>
+                    {% for cat in categories %}
+                        {% if cat.id == dish.category_id %}
+                            {% if cat.parent_id == 0 %}{{ cat.name }}{% else %}
+                                {% for p in categories %}{% if p.id == cat.parent_id %}{{ p.name }} → {% endif %}{% endfor %}{{ cat.name }}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </td>
+                <td>{% if dish.bento_compatible %}✅{% else %}❌{% endif %}</td>
+                <td>{{ dish.preprocess_days }}</td>
+                <td>{{ dish.cook_minutes }}</td>
+                <td>
+                    <a href="/admin/dish/{{ dish.id }}" class="btn btn-sm btn-warning">编辑</a>
+                    <a href="/admin/dish/delete/{{ dish.id }}" class="btn btn-sm btn-danger" onclick="return confirm('确定删除？')">删除</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<script>
+    document.getElementById('searchInput').addEventListener('input', function() {
+        let keyword = this.value.toLowerCase();
+        let rows = document.querySelectorAll('.dish-row');
+        rows.forEach(row => {
+            let name = row.querySelector('.dish-name').innerText.toLowerCase();
+            row.style.display = name.includes(keyword) ? '' : 'none';
+        });
+    });
+</script>
+</body>
+</html>

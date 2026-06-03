@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>熊家食堂 - 点菜</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #fef7e8; color: #3a2800; font-family: 'Segoe UI','Noto Sans SC',system-ui; }
+        .dish-card { cursor: pointer; transition: 0.2s; border: 1px solid #e8d8a0; border-radius: 20px; background: #fffcf4; padding: 8px; position: relative; }
+        .dish-card:hover { transform: translateY(-4px); box-shadow: 0 8px 18px rgba(180,130,20,0.15); border-color: #e9b741; }
+        .dish-card.unavailable { opacity: 0.38; }
+        .dish-card.unavailable:hover { transform: none; box-shadow: none; }
+        .dish-img { width: 100%; height: 110px; object-fit: cover; border-radius: 16px; background: #faefc9; }
+        .slot-input { font-size: 0.85rem; border-radius: 40px; border: 1px solid #e8d8a0; background: #fffcf4; color: #3a2800; }
+        .slot-input.focused { border-color: #e9b741; box-shadow: 0 0 0 0.18rem rgba(233,183,65,0.28); }
+        .slot-input:disabled { background: #f5eed8; color: #c0a860; }
+        .mode-select { font-size: 0.8rem; border-radius: 40px; border-color: #e8d8a0; }
+        .mode-select:focus { border-color: #e9b741; box-shadow: 0 0 0 0.18rem rgba(233,183,65,0.22); }
+        .day-card { background: #fffcf4; border-radius: 28px; overflow: hidden; box-shadow: 0 2px 10px rgba(180,130,20,0.1); border: 1px solid #e8d8a0; }
+        .day-card.dimmed .day-body { opacity: 0.5; pointer-events: none; }
+        .sticky-top { top: 10px; z-index: 100; }
+        /* 提交按钮 */
+        .btn-warning-custom { background: #e9b741; border: none; color: #3a2800; padding: 10px 24px; border-radius: 40px; font-weight: 600; box-shadow: 0 3px 12px rgba(180,130,20,0.28); transition: all 0.2s; }
+        .btn-warning-custom:hover { background: #d4a12b; color: #3a2800; box-shadow: 0 5px 18px rgba(180,130,20,0.38); }
+        /* Bootstrap 按钮覆盖 */
+        .btn-primary { background: #e9b741; border-color: #e9b741; color: #3a2800; font-weight: 500; }
+        .btn-primary:hover,.btn-primary:focus,.btn-primary:active { background: #d4a12b !important; border-color: #d4a12b !important; color: #3a2800 !important; box-shadow: 0 0 0 0.2rem rgba(212,161,43,0.3) !important; }
+        .btn-secondary { background: #f0e5c8; border-color: #e0ce9a; color: #7a5c1e; }
+        .btn-secondary:hover { background: #e3d3a8; border-color: #ccba7a; color: #3a2800; }
+        .btn-outline-secondary { border-color: #e0ce9a; color: #7a5c1e; }
+        .btn-outline-secondary:hover { background: #f0e5c8; border-color: #ccba7a; color: #3a2800; }
+        /* 右侧菜谱卡片 */
+        .card { border: 1px solid #e8d8a0 !important; background: #fffcf4; }
+        .card-header { background: #faefc9 !important; border-bottom: 1px solid #e8d8a0 !important; }
+        /* 分类标签 */
+        .nav-tabs .nav-link { color: #8a6820; border-color: transparent; font-size: 0.85rem; }
+        .nav-tabs .nav-link.active { color: #3a2800; font-weight: 600; border-color: #e8d8a0 #e8d8a0 #fffcf4; background: #fffcf4; }
+        .nav-tabs .nav-link:hover:not(.active) { color: #3a2800; background: #faefc9; border-color: transparent; }
+        /* 子分类按钮 */
+        .btn-outline-secondary.subcat-btn { border-color: #e8d8a0; color: #7a5c1e; font-size: 0.8rem; border-radius: 20px; }
+        .btn-outline-secondary.subcat-btn.active,.btn-outline-secondary.subcat-btn:hover { background: #faefc9; border-color: #e9b741; color: #3a2800; }
+        /* 模态框 */
+        .modal-content { border: 1px solid #e8d8a0; border-radius: 24px; overflow: hidden; }
+        .modal-header { background: #faefc9; border-bottom: 1px solid #e8d8a0; }
+        .modal-footer { background: #fffcf4; border-top: 1px solid #e8d8a0; }
+        /* 搜索框 */
+        .form-control:focus { border-color: #e9b741; box-shadow: 0 0 0 0.2rem rgba(233,183,65,0.22); }
+        .form-control { border-color: #e8d8a0; background: #fffcf4; }
+    </style>
+</head>
+<body>
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><span style="background:#faefc9; color:#3a2800; padding:6px 14px; border-radius:20px; border:1px solid #e8d8a0; font-weight:700; font-size:1.1rem;">🐻 熊家食堂 · 点菜</span></h3>
+        <div>
+            <span style="background:#e9b741; color:#3a2800; padding:4px 12px; border-radius:20px; font-size:0.85rem; font-weight:600;" id="customerNameDisplay"></span>
+            <span style="background:#faefc9; color:#7a5c1e; padding:4px 12px; border-radius:20px; font-size:0.85rem; border:1px solid #e8d8a0;" id="weekRangeDisplay"></span>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 左侧周卡片区 -->
+        <div class="col-md-6 col-lg-7">
+            <div id="week-cards" class="row g-3"></div>
+            <div class="mt-4 text-center">
+                <button id="submitOrderBtn" class="btn btn-warning-custom">✅ 确认提交订单</button>
+                <a href="/" class="btn btn-outline-secondary ms-2">返回首页</a>
+            </div>
+        </div>
+
+        <!-- 右侧菜谱区 -->
+        <div class="col-md-6 col-lg-5">
+            <div class="card sticky-top" style="border-radius: 28px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                <div class="card-header bg-white border-0 pt-3">
+                    <ul class="nav nav-tabs card-header-tabs" id="mainCategoryTabs" role="tablist"></ul>
+                </div>
+                <div class="card-body">
+                    <input type="text" id="dishSearch" class="form-control mb-2" placeholder="🔍 搜索菜名...">
+                    <div id="subcategoryArea" class="mb-2 d-flex flex-wrap gap-1"></div>
+                    <div id="dishGrid" class="row g-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 规格选择模态框 -->
+<div class="modal fade" id="specModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 28px;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="specModalTitle">选择规格</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="specModalBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">再看看别的菜</button>
+                <button type="button" class="btn btn-primary" id="confirmSpecBtn">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 同名菜品选择模态框 -->
+<div class="modal fade" id="duplicateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 28px;">
+            <div class="modal-header">
+                <h5 class="modal-title">检测到多个同名菜品</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="duplicateModalBody"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 获取URL参数 (week_monday)
+    const urlParams = new URLSearchParams(window.location.search);
+    const customerName = decodeURIComponent(urlParams.get('customer') || '大熊');
+    const weekMondayStr = urlParams.get('week_monday');   // 格式 YYYY-MM-DD
+    let existingOrderRaw = urlParams.get('existing');
+    let existingOrderData = null;
+    if (existingOrderRaw) {
+        try {
+            const decoded = decodeURIComponent(existingOrderRaw);
+            existingOrderData = decoded ? JSON.parse(decoded) : null;
+            // 服务器侧 order_data 存的是 {days: [...]}；预填充需要 dayIdx 映射
+            if (existingOrderData && existingOrderData.days) {
+                const map = {};
+                existingOrderData.days.forEach((d, i) => { map[i] = {
+                    mode: d.mode || '熊山洞开小灶',
+                    dish1: d.dish1 || '', dish2: d.dish2 || '', staple: d.staple || '',
+                    extra1: d.extra1 || '', extra2: d.extra2 || '', extra3: d.extra3 || ''
+                }; });
+                existingOrderData = map;
+            }
+        } catch (e) { existingOrderData = null; }
+    }
+
+    if (!weekMondayStr) {
+        alert('缺少点餐周参数，返回首页');
+        window.location.href = '/';
+    }
+
+    let allDishes = [];
+    let categoriesTree = [];
+    let allCategoriesFlat = [];
+    let stapleCatIds = new Set();   // 主食大类及其子分类的 ID
+    let currentMainCat = null;
+    let currentSubCat = null;
+    let currentFocusSlot = null;  // {dayIdx, slotType}
+    let selectedOrder = {};
+
+    const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六'];
+    // 根据周一日期计算周一~周六的日期对象
+    let mondayDate = weekMondayStr ? parseLocalYMD(weekMondayStr) : new Date();
+    let weekDates = [];
+    for (let i = 0; i < 6; i++) {
+        let d = new Date(mondayDate);
+        d.setDate(mondayDate.getDate() + i);
+        weekDates.push(d);
+    }
+
+    document.getElementById('customerNameDisplay').innerHTML = `👤 ${escapeHtml(customerName)}`;
+    let monday = weekDates[0];
+    let saturday = weekDates[5];
+    document.getElementById('weekRangeDisplay').innerHTML = `${formatYMD(monday)} ~ ${formatYMD(saturday)}`;
+
+    function parseLocalYMD(s) {
+        const [y, m, d] = s.split('-').map(x => parseInt(x, 10));
+        return new Date(y, m - 1, d);
+    }
+    function formatYMD(date) {
+        return `${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日`;
+    }
+    function ymdLocal(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
+    function initOrderData() {
+        let order = {};
+        for (let i = 0; i < 6; i++) {
+            order[i] = {
+                mode: '熊山洞开小灶',
+                dish1: '', dish2: '', staple: '',
+                extra1: '', extra2: '', extra3: ''
+            };
+        }
+        return order;
+    }
+
+    if (existingOrderData) selectedOrder = existingOrderData;
+    else selectedOrder = initOrderData();
+    // 爱心便当主食默认米饭
+    for (let i = 0; i < 6; i++) {
+        if (selectedOrder[i].mode === '爱心便当' && !selectedOrder[i].staple) {
+            selectedOrder[i].staple = '米饭';
+        }
+    }
+
+    // 加载菜品
+    fetch('/api/dishes')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                allDishes = data.dishes;
+                categoriesTree = data.categories;
+                // 展平分类便于查找
+                flattenCategories(categoriesTree);
+                buildCategoryHelpers(categoriesTree);
+                renderMainTabs();
+                renderWeekCards();
+                if (existingOrderData) {
+                    for (let i = 0; i < 6; i++) updateCardDisplay(i);
+                }
+            }
+        });
+
+    function flattenCategories(tree) {
+        allCategoriesFlat = [];
+        function walk(node, parentName) {
+            allCategoriesFlat.push({ id: node.id, name: node.name, parent_name: parentName });
+            (node.children || []).forEach(c => walk(c, node.name));
+        }
+        tree.forEach(c => walk(c, null));
+    }
+
+    function buildCategoryHelpers(tree) {
+        function collectIds(rootName) {
+            const root = tree.find(c => c.name === rootName);
+            if (!root) return new Set();
+            const ids = new Set([root.id]);
+            (root.children || []).forEach(c => ids.add(c.id));
+            return ids;
+        }
+        stapleCatIds = collectIds('主食');
+    }
+
+    function getCategoryName(catId) {
+        const f = allCategoriesFlat.find(c => c.id === catId);
+        if (!f) return '';
+        return f.parent_name ? `${f.parent_name} → ${f.name}` : f.name;
+    }
+
+    function renderMainTabs() {
+        const container = document.getElementById('mainCategoryTabs');
+        container.innerHTML = '';
+        categoriesTree.forEach((cat, idx) => {
+            const li = document.createElement('li');
+            li.className = 'nav-item';
+            const btn = document.createElement('button');
+            btn.className = `nav-link ${idx === 0 ? 'active' : ''}`;
+            btn.textContent = cat.name;
+            btn.onclick = () => {
+                document.querySelectorAll('#mainCategoryTabs .nav-link').forEach(link => link.classList.remove('active'));
+                btn.classList.add('active');
+                currentMainCat = cat;
+                renderSubCategories(cat);
+                if (cat.children.length) {
+                    currentSubCat = cat.children[0];
+                    renderDishes(currentSubCat.id);
+                } else {
+                    currentSubCat = null;
+                    renderDishes(cat.id);
+                }
+            };
+            li.appendChild(btn);
+            container.appendChild(li);
+        });
+        if (categoriesTree.length) {
+            currentMainCat = categoriesTree[0];
+            renderSubCategories(currentMainCat);
+            if (currentMainCat.children.length) {
+                currentSubCat = currentMainCat.children[0];
+                renderDishes(currentSubCat.id);
+            } else {
+                renderDishes(currentMainCat.id);
+            }
+        }
+    }
+
+    function renderSubCategories(cat) {
+        const area = document.getElementById('subcategoryArea');
+        area.innerHTML = '';
+        if (cat.children && cat.children.length) {
+            cat.children.forEach((sub, i) => {
+                const btn = document.createElement('button');
+                btn.className = `btn btn-sm rounded-pill px-3 ${i === 0 ? 'btn-secondary' : 'btn-outline-secondary'}`;
+                btn.textContent = sub.name;
+                btn.onclick = () => {
+                    area.querySelectorAll('button').forEach(b => { b.classList.remove('btn-secondary'); b.classList.add('btn-outline-secondary'); });
+                    btn.classList.remove('btn-outline-secondary'); btn.classList.add('btn-secondary');
+                    currentSubCat = sub;
+                    renderDishes(sub.id);
+                };
+                area.appendChild(btn);
+            });
+        } else {
+            area.innerHTML = '<span class="text-muted">无子分类</span>';
+        }
+    }
+
+    function renderDishes(categoryId) {
+        const grid = document.getElementById('dishGrid');
+        const searchTerm = normalizeSearch(document.getElementById('dishSearch').value);
+        let dishes = allDishes.filter(d => d.category_id === categoryId);
+        if (searchTerm) dishes = dishes.filter(d => normalizeSearch(d.name).includes(searchTerm));
+        grid.innerHTML = '';
+        if (dishes.length === 0) {
+            grid.innerHTML = '<div class="col-12 text-muted">暂无菜品</div>';
+            return;
+        }
+        const focus = currentFocusSlot;
+        const focusMode = focus ? selectedOrder[focus.dayIdx].mode : null;
+        const focusDayIdx = focus ? focus.dayIdx : null;
+        dishes.forEach(dish => {
+            const col = document.createElement('div');
+            col.className = 'col-6 col-md-4';
+            const card = document.createElement('div');
+            card.className = 'dish-card text-center';
+            // 灰度判定：出去觅食/特殊事件全灰；其他模式走 isDishAvailable（含槽位与模式双重检查）
+            let available = true;
+            if (focus) {
+                if (focusMode === '出去觅食' || focusMode === '特殊事件') {
+                    available = false;
+                } else {
+                    available = isDishAvailable(dish, focusDayIdx + 1, focusMode, focus.slotType);
+                }
+            }
+            if (focus && !available) card.classList.add('unavailable');
+            const img = document.createElement('img');
+            img.src = dish.image_url || '/static/img/placeholder.png';
+            img.onerror = () => { img.src = '/static/img/placeholder.png'; };
+            img.className = 'dish-img';
+            const nameSpan = document.createElement('div');
+            nameSpan.className = 'fw-bold small mt-1';
+            nameSpan.textContent = dish.name;
+            card.appendChild(img);
+            card.appendChild(nameSpan);
+            card.title = dish.ingredients || '';
+            card.onclick = () => handleDishClick(dish);
+            col.appendChild(card);
+            grid.appendChild(col);
+        });
+    }
+
+    function normalizeSearch(s) {
+        if (!s) return '';
+        return s.replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
+    document.getElementById('dishSearch').addEventListener('input', () => {
+        if (currentSubCat) renderDishes(currentSubCat.id);
+        else if (currentMainCat) renderDishes(currentMainCat.id);
+    });
+
+    // 可用性判断
+    function isDishAvailable(dish, dayIdx, mode, slotType) {
+        // 槽位限制：主食槽只接受主食类；菜品槽不接受主食类
+        if (slotType === 'staple') {
+            if (stapleCatIds.size > 0 && !stapleCatIds.has(dish.category_id)) return false;
+        } else if (slotType) {
+            if (stapleCatIds.size > 0 && stapleCatIds.has(dish.category_id)) return false;
+        }
+        // 模式限制
+        if (mode === '爱心便当') {
+            if (!dish.bento_compatible) return false;
+            if (!isPreprocessReady(dish, dayIdx, mode)) return false;
+        } else if (mode === '熊山洞开小灶') {
+            if (!isPreprocessReady(dish, dayIdx, mode)) return false;
+        }
+        return true;
+    }
+
+    function isPreprocessReady(dish, dayIdx, mode) {
+        // dayIdx: 0=周日(第1天), 1=周一(第2天), ..., 6=周六(第7天)
+        const daySinceSunday = dayIdx + 1;
+        const D = dish.preprocess_days || 0;
+        if (D <= 0) return true;
+        if (mode === '熊山洞开小灶') {
+            return daySinceSunday >= D; // 可用日期 ≥ 周日 + (D-1)，即 daySinceSunday ≥ D
+        } else {
+            return daySinceSunday >= D + 1; // 爱心便当 ≥ 周日 + D
+        }
+    }
+
+    function unavailableReason(dish, dayIdx, mode, slotType) {
+        if (slotType === 'staple' && stapleCatIds.size > 0 && !stapleCatIds.has(dish.category_id))
+            return '主食栏只能选主食类菜品（面条、米饭、饼等），请先点击主食输入框再选择';
+        if (slotType && slotType !== 'staple' && stapleCatIds.size > 0 && stapleCatIds.has(dish.category_id))
+            return '主食类菜品请填入主食栏';
+        if (mode === '爱心便当') {
+            if (!dish.bento_compatible) return '此菜不宜做成爱心便当，只适合在家享用，还请重选其他菜色';
+            if (!isPreprocessReady(dish, dayIdx, mode)) return `此菜需要${dish.preprocess_days}天预处理，前一天晚无法烹饪成便当，请选择其他菜品`;
+        } else if (mode === '熊山洞开小灶') {
+            if (!isPreprocessReady(dish, dayIdx, mode)) return `此菜需要${dish.preprocess_days}天预处理，当天无法烹饪，请选择其他菜品`;
+        }
+        return '';
+    }
+
+    function handleDishClick(dish) {
+        if (currentFocusSlot === null) {
+            alert('请先点击左侧某个菜品空位（光标闪烁处）');
+            return;
+        }
+        const { dayIdx, slotType } = currentFocusSlot;
+        const currentMode = selectedOrder[dayIdx].mode;
+        if (currentMode === '出去觅食' || currentMode === '特殊事件') {
+            alert(`${weekDays[dayIdx]} 当前模式为"${currentMode}"，无需点菜`);
+            return;
+        }
+        if (!isDishAvailable(dish, dayIdx + 1, currentMode, slotType)) {
+            const msg = unavailableReason(dish, dayIdx + 1, currentMode, slotType);
+            if (msg) alert(msg);
+            return;
+        }
+        if (dish.extra_options && dish.extra_options.length > 0) {
+            showSpecModal(dish, (selectedSpecs) => {
+                let specText = selectedSpecs.length ? `（${selectedSpecs.join('，')}）` : '';
+                fillSlot(dayIdx, slotType, dish.name + specText);
+            });
+        } else {
+            if (confirm(`是否选择"${dish.name}"？`)) {
+                fillSlot(dayIdx, slotType, dish.name);
+            }
+        }
+    }
+
+    function showSpecModal(dish, callback) {
+        const modalBody = document.getElementById('specModalBody');
+        document.getElementById('specModalTitle').innerText = `选择规格 - ${dish.name}`;
+        modalBody.innerHTML = '';
+        const groups = (dish.extra_options || []).slice(0, 5);  // 最多5组
+        groups.forEach((group, idx) => {
+            const div = document.createElement('div');
+            div.className = 'mb-3';
+            const label = document.createElement('label');
+            label.className = 'form-label fw-bold';
+            label.innerText = group.name;
+            div.appendChild(label);
+            const opts = (group.options || []).slice(0, 20);  // 每组最多20个
+            opts.forEach(opt => {
+                const wrap = document.createElement('div');
+                wrap.className = 'form-check';
+                const input = document.createElement('input');
+                input.className = 'form-check-input';
+                input.type = group.type === 'checkbox' ? 'checkbox' : 'radio';
+                input.name = `group_${idx}`;
+                input.value = opt;
+                input.id = `opt_${idx}_${opt}`;
+                const lbl = document.createElement('label');
+                lbl.className = 'form-check-label';
+                lbl.htmlFor = input.id;
+                lbl.innerText = opt;
+                wrap.appendChild(input);
+                wrap.appendChild(lbl);
+                div.appendChild(wrap);
+            });
+            modalBody.appendChild(div);
+        });
+        const modal = new bootstrap.Modal(document.getElementById('specModal'));
+        const confirmBtn = document.getElementById('confirmSpecBtn');
+        confirmBtn.onclick = () => {
+            let result = [];
+            groups.forEach((group, idx) => {
+                if (group.type === 'checkbox') {
+                    const selected = document.querySelectorAll(`input[name="group_${idx}"]:checked`);
+                    selected.forEach(cb => result.push(cb.value));
+                } else {
+                    const selected = document.querySelector(`input[name="group_${idx}"]:checked`);
+                    if (selected) result.push(selected.value);
+                }
+            });
+            modal.hide();
+            callback(result);
+        };
+        modal.show();
+    }
+
+    function fillSlot(dayIdx, slotType, value) {
+        if (selectedOrder[dayIdx][slotType] && selectedOrder[dayIdx][slotType] !== value) {
+            if (!confirm(`该空位已有内容"${selectedOrder[dayIdx][slotType]}"，是否覆盖？`)) return;
+        }
+        selectedOrder[dayIdx][slotType] = value;
+        updateCardDisplay(dayIdx);
+    }
+
+    function updateCardDisplay(dayIdx) {
+        const data = selectedOrder[dayIdx];
+        const card = document.getElementById(`day-card-${dayIdx}`);
+        if (!card) return;
+        const inputs = card.querySelectorAll('.slot-input');
+        inputs.forEach(inp => {
+            const slot = inp.dataset.slot;
+            inp.value = data[slot] || '';
+        });
+        const extraDiv = card.querySelector('.extra-slots');
+        if (extraDiv) extraDiv.style.display = (data.mode === '熊山洞开小灶') ? 'block' : 'none';
+        // 出去觅食/特殊事件：所有空位灰掉不可填
+        const disable = (data.mode === '出去觅食' || data.mode === '特殊事件');
+        inputs.forEach(inp => { inp.disabled = disable; });
+        card.classList.toggle('dimmed', disable);
+    }
+
+    function renderWeekCards() {
+        const container = document.getElementById('week-cards');
+        container.innerHTML = '';
+        for (let i = 0; i < 6; i++) {
+            const dateObj = weekDates[i];
+            const dateStr = `${dateObj.getFullYear()}年${dateObj.getMonth()+1}月${dateObj.getDate()}日`;
+            const data = selectedOrder[i];
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'col-md-6 col-lg-4';
+            cardDiv.innerHTML = `
+                <div class="day-card h-100" id="day-card-${i}">
+                    <div class="bg-warning bg-opacity-10 p-2 border-bottom">
+                        <strong>${weekDays[i]} ${dateStr}</strong>
+                        <select class="form-select form-select-sm mt-1 mode-select" data-day="${i}">
+                            <option value="熊山洞开小灶" ${data.mode === '熊山洞开小灶' ? 'selected' : ''}>🐻 熊山洞开小灶</option>
+                            <option value="爱心便当" ${data.mode === '爱心便当' ? 'selected' : ''}>🍱 爱心便当</option>
+                            <option value="出去觅食" ${data.mode === '出去觅食' ? 'selected' : ''}>🍽️ 出去觅食</option>
+                            <option value="特殊事件" ${data.mode === '特殊事件' ? 'selected' : ''}>⚠️ 特殊事件</option>
+                        </select>
+                    </div>
+                    <div class="p-3 day-body">
+                        <div class="mb-2"><small>菜品①</small>
+                            <input type="text" class="form-control form-control-sm slot-input" data-day="${i}" data-slot="dish1" value="${escapeHtml(data.dish1)}" placeholder="点击右侧菜谱或手动输入">
+                        </div>
+                        <div class="mb-2"><small>菜品②</small>
+                            <input type="text" class="form-control form-control-sm slot-input" data-day="${i}" data-slot="dish2" value="${escapeHtml(data.dish2)}" placeholder="点击右侧菜谱或手动输入">
+                        </div>
+                        <div class="mb-2"><small>主食</small>
+                            <input type="text" class="form-control form-control-sm slot-input" data-day="${i}" data-slot="staple" value="${escapeHtml(data.staple)}" placeholder="点击右侧菜谱或手动输入">
+                        </div>
+                        <div class="extra-slots" style="display: ${data.mode === '熊山洞开小灶' ? 'block' : 'none'};">
+                            <hr class="my-2">
+                            <div class="mb-2"><small>加菜1</small><input type="text" class="form-control form-control-sm slot-input" data-day="${i}" data-slot="extra1" value="${escapeHtml(data.extra1)}"></div>
+                            <div class="mb-2"><small>加菜2</small><input type="text" class="form-control form-control-sm slot-input" data-day="${i}" data-slot="extra2" value="${escapeHtml(data.extra2)}"></div>
+                            <div class="mb-2"><small>加菜3</small><input type="text" class="form-control form-control-sm slot-input" data-day="${i}" data-slot="extra3" value="${escapeHtml(data.extra3)}"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(cardDiv);
+            updateCardDisplay(i);
+        }
+
+        document.querySelectorAll('.mode-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const day = parseInt(select.dataset.day);
+                selectedOrder[day].mode = select.value;
+                if (select.value === '爱心便当' && !selectedOrder[day].staple) {
+                    selectedOrder[day].staple = '米饭';
+                }
+                updateCardDisplay(day);
+                // 模式变了，刷新右侧菜谱网格的灰度状态
+                if (currentSubCat) renderDishes(currentSubCat.id);
+                else if (currentMainCat) renderDishes(currentMainCat.id);
+            });
+        });
+        document.querySelectorAll('.slot-input').forEach(input => {
+            input.addEventListener('focus', () => {
+                document.querySelectorAll('.slot-input.focused').forEach(el => el.classList.remove('focused'));
+                input.classList.add('focused');
+                const day = parseInt(input.dataset.day);
+                const slot = input.dataset.slot;
+                currentFocusSlot = { dayIdx: day, slotType: slot };
+                if (currentSubCat) renderDishes(currentSubCat.id);
+                else if (currentMainCat) renderDishes(currentMainCat.id);
+            });
+            const triggerMatch = () => {
+                const day = parseInt(input.dataset.day);
+                const slot = input.dataset.slot;
+                const raw = input.value;
+                const normalized = raw.replace(/\s+/g, ' ').trim();
+                if (!normalized) {
+                    selectedOrder[day][slot] = '';
+                    input.value = '';
+                    return;
+                }
+                const matches = allDishes.filter(d => d.name.toLowerCase() === normalized.toLowerCase());
+                if (matches.length === 0) {
+                    alert(`未检测到此菜名"${normalized}"，请浏览菜谱`);
+                    input.value = '';
+                    selectedOrder[day][slot] = '';
+                    return;
+                }
+                const applyDish = (dish) => {
+                    const mode = selectedOrder[day].mode;
+                    if (mode === '出去觅食' || mode === '特殊事件') {
+                        alert(`${weekDays[day]} 当前模式为"${mode}"，无需点菜`);
+                        input.value = ''; selectedOrder[day][slot] = ''; return;
+                    }
+                    if (!isDishAvailable(dish, day + 1, mode, slot)) {
+                        alert(unavailableReason(dish, day + 1, mode, slot) || '此菜品当前不可用');
+                        input.value = ''; selectedOrder[day][slot] = ''; return;
+                    }
+                    if (dish.extra_options && dish.extra_options.length > 0) {
+                        showSpecModal(dish, (specs) => {
+                            const specText = specs.length ? `（${specs.join('，')}）` : '';
+                            selectedOrder[day][slot] = dish.name + specText;
+                            input.value = dish.name + specText;
+                        });
+                    } else {
+                        selectedOrder[day][slot] = dish.name;
+                        input.value = dish.name;
+                    }
+                };
+                if (matches.length === 1) {
+                    applyDish(matches[0]);
+                } else {
+                    showDuplicateModal(matches, applyDish);
+                }
+            };
+            input.addEventListener('blur', triggerMatch);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+            });
+        });
+    }
+
+    function showDuplicateModal(matches, callback) {
+        const body = document.getElementById('duplicateModalBody');
+        body.innerHTML = '<p>检测到多个同名菜品，请选择具体分类：</p>';
+        const modal = new bootstrap.Modal(document.getElementById('duplicateModal'));
+        matches.forEach(d => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-outline-secondary me-2 mb-2';
+            btn.innerText = `${d.name} · ${getCategoryName(d.category_id) || '未分类'}`;
+            btn.onclick = () => { modal.hide(); callback(d); };
+            body.appendChild(btn);
+        });
+        modal.show();
+    }
+
+    // 提交订单
+    document.getElementById('submitOrderBtn').onclick = () => {
+        for (let i = 0; i < 6; i++) {
+            const mode = selectedOrder[i].mode;
+            if (mode === '爱心便当') {
+                if (!selectedOrder[i].dish1 || !selectedOrder[i].dish2 || !selectedOrder[i].staple) {
+                    alert(`${weekDays[i]} 有便当菜没有点全，请补全再点击确定`);
+                    return;
+                }
+            } else if (mode === '熊山洞开小灶') {
+                if (!selectedOrder[i].staple) {
+                    alert(`${weekDays[i]} 请补全主食`);
+                    return;
+                }
+            }
+        }
+        const daysData = [];
+        for (let i = 0; i < 6; i++) {
+            daysData.push({
+                day_name: weekDays[i],
+                date: ymdLocal(weekDates[i]),
+                mode: selectedOrder[i].mode,
+                dish1: selectedOrder[i].dish1,
+                dish2: selectedOrder[i].dish2,
+                staple: selectedOrder[i].staple,
+                extra1: selectedOrder[i].extra1,
+                extra2: selectedOrder[i].extra2,
+                extra3: selectedOrder[i].extra3
+            });
+        }
+        const orderPayload = { days: daysData };
+        fetch('/api/order/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                customer_name: customerName,
+                week_monday: weekMondayStr,
+                order_data: orderPayload
+            })
+        }).then(res => res.json()).then(data => {
+            if (data.success) {
+                alert('订单提交成功！');
+                window.location.href = '/';
+            } else {
+                alert('提交失败: ' + (data.error || '未知错误'));
+            }
+        }).catch(err => alert('网络错误'));
+    };
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, function(m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        });
+    }
+</script>
+</body>
+</html>

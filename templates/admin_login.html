@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>厨师登录 - 熊家食堂</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #fef7e8; color: #3a2800; font-family: 'Segoe UI','Noto Sans SC',system-ui; }
+        .login-box { max-width: 400px; margin: 100px auto; background: #fffcf4; padding: 32px; border-radius: 24px; border: 1px solid #e8d8a0; box-shadow: 0 6px 24px rgba(180,130,20,0.12); }
+        .login-title { text-align: center; color: #3a2800; margin-bottom: 24px; font-weight: 700; }
+        /* 暖金配色覆盖 */
+        .btn-primary { background: #e9b741; border-color: #e9b741; color: #3a2800; font-weight: 600; }
+        .btn-primary:hover,.btn-primary:focus,.btn-primary:active { background: #d4a12b !important; border-color: #d4a12b !important; color: #3a2800 !important; box-shadow: 0 0 0 0.2rem rgba(212,161,43,0.3) !important; }
+        .btn-warning { background: #e9b741; border-color: #e9b741; color: #3a2800; font-weight: 600; }
+        .btn-warning:hover,.btn-warning:focus { background: #d4a12b; border-color: #d4a12b; color: #3a2800; }
+        .btn-secondary { background: #f0e5c8; border-color: #e0ce9a; color: #7a5c1e; }
+        .btn-secondary:hover { background: #e3d3a8; border-color: #ccba7a; color: #3a2800; }
+        .form-control:focus { border-color: #e9b741; box-shadow: 0 0 0 0.2rem rgba(233,183,65,0.22); }
+        .modal-content { border: 1px solid #e8d8a0; border-radius: 20px; overflow: hidden; }
+        .modal-header { background: #faefc9; border-bottom: 1px solid #e8d8a0; }
+        .modal-footer { background: #fffcf4; border-top: 1px solid #e8d8a0; }
+        .alert-danger { background: #fdecea; border-color: #f5b8b0; color: #8b2518; }
+        a:not(.btn) { color: #8a6820; }
+        a:not(.btn):hover { color: #d4a12b; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="login-box">
+        <h3 class="text-center mb-4">🐱 大猫厨师登录</h3>
+        <form method="post">
+            <input type="hidden" name="action" value="login">
+            <div class="mb-3">
+                <label class="form-label">密码</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-warning w-100">登录</button>
+        </form>
+        <div class="text-center mt-3">
+            <a href="#" id="forgotBtn">忘记密码？</a>
+        </div>
+        {% if error %}
+        <div class="alert alert-danger mt-3">{{ error }}</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 忘记密码模态框 -->
+<div class="modal fade" id="forgotModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="forgotForm">
+                <input type="hidden" name="action" value="forgot">
+                <div class="modal-header">
+                    <h5 class="modal-title">找回密码</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>请回答以下安全问题：</p>
+                    <div class="mb-2">
+                        <label>1. 你的第一辆车是什么牌子？</label>
+                        <input type="text" name="answer_0" class="form-control" required>
+                    </div>
+                    <div class="mb-2">
+                        <label>2. 母亲的生日YYYYMMDD？</label>
+                        <input type="text" name="answer_1" class="form-control" required>
+                    </div>
+                    <div class="mb-2">
+                        <label>3. 你的第一个自建网站是哪个游戏的攻略和周边？此游戏是哪个公司出品？答案格式：游戏名 公司名</label>
+                        <input type="text" name="answer_2" class="form-control" required>
+                    </div>
+                    <div class="mb-2">
+                        <label>新密码</label>
+                        <input type="password" name="new_password" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">重置密码</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('forgotBtn').onclick = function() {
+        var modal = new bootstrap.Modal(document.getElementById('forgotModal'));
+        modal.show();
+    };
+</script>
+</body>
+</html>

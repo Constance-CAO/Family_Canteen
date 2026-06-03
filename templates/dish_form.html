@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>编辑菜品 - 熊家食堂</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css">
+    <style>
+        img { max-width: 100%; }
+        .cropper-container { max-height: 400px; }
+        /* 暖金配色 */
+        body { background: #fef7e8; color: #3a2800; font-family: 'Segoe UI','Noto Sans SC',system-ui; }
+        h1 { color: #3a2800; font-weight: 700; margin-bottom: 24px; }
+        .form-label { color: #7a5c1e; font-weight: 500; }
+        .btn-primary { background: #e9b741; border-color: #e9b741; color: #3a2800; font-weight: 600; }
+        .btn-primary:hover,.btn-primary:focus,.btn-primary:active { background: #d4a12b !important; border-color: #d4a12b !important; color: #3a2800 !important; box-shadow: 0 0 0 0.2rem rgba(212,161,43,0.3) !important; }
+        .btn-secondary { background: #f0e5c8; border-color: #e0ce9a; color: #7a5c1e; }
+        .btn-secondary:hover { background: #e3d3a8; border-color: #ccba7a; color: #3a2800; }
+        .btn-outline-primary { border-color: #e9b741; color: #8a6820; }
+        .btn-outline-primary:hover { background: #faefc9; border-color: #d4a12b; color: #3a2800; }
+        .form-control:focus,.form-select:focus { border-color: #e9b741; box-shadow: 0 0 0 0.2rem rgba(233,183,65,0.22); }
+        .card { border: 1px solid #e8d8a0; border-radius: 12px; background: #fffcf4; }
+        .form-control,.form-select { border-color: #e8d8a0; background: #fffcf4; }
+    </style>
+</head>
+<body>
+<div class="container mt-4">
+    <h1>{% if dish %}编辑菜品{% else %}新增菜品{% endif %}</h1>
+    <form method="post" enctype="multipart/form-data">
+        <div class="mb-3">
+            <label>菜名</label>
+            <input type="text" name="name" class="form-control" value="{{ dish.name if dish else '' }}" required>
+        </div>
+        <div class="mb-3">
+            <label>主要成分（鼠标悬停显示）</label>
+            <textarea name="ingredients" class="form-control" rows="2">{{ dish.ingredients if dish else '' }}</textarea>
+        </div>
+        <div class="mb-3">
+            <label>分类</label>
+            <select name="category_id" class="form-select" required>
+                <option value="">请选择</option>
+                {% for cat in categories if cat.parent_id == 0 %}
+                <optgroup label="{{ cat.name }}">
+                    {% for sub in categories if sub.parent_id == cat.id %}
+                    <option value="{{ sub.id }}" {% if dish and dish.category_id == sub.id %}selected{% endif %}>{{ sub.name }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3 form-check">
+            <input type="checkbox" name="bento_compatible" class="form-check-input" id="bentoCompatible" {% if not dish or dish.bento_compatible %}checked{% endif %}>
+            <label class="form-check-label" for="bentoCompatible">便当兼容（适合爱心便当）</label>
+        </div>
+        <div class="mb-3">
+            <label>预处理天数（从周日采买算起，周日为第1天）</label>
+            <input type="number" name="preprocess_days" class="form-control" value="{{ dish.preprocess_days if dish else 0 }}">
+        </div>
+        <div class="mb-3">
+            <label>烹饪时长（分钟）</label>
+            <input type="number" name="cook_minutes" class="form-control" value="{{ dish.cook_minutes if dish else 40 }}">
+        </div>
+        <div class="mb-3">
+            <label>菜品图片</label>
+            <input type="file" id="imageInput" name="image" accept="image/*" class="form-control">
+            <div id="imagePreview" style="margin-top:10px;">
+                {% if dish and dish.image_url %}
+                <img src="{{ url_for('static', filename='uploads/' + dish.image_url.split('/')[-1]) if dish.image_url else '' }}" style="max-width:200px;">
+                {% endif %}
+            </div>
+            <div id="cropContainer" style="display:none; margin-top:10px;"></div>
+            <input type="hidden" id="crop_x" name="crop_x">
+            <input type="hidden" id="crop_y" name="crop_y">
+            <input type="hidden" id="crop_width" name="crop_width">
+            <input type="hidden" id="crop_height" name="crop_height">
+            <button type="button" id="cropBtn" class="btn btn-sm btn-secondary mt-2" style="display:none;">裁剪并保存</button>
+        </div>
+        <div class="mb-3">
+            <label>规格选项</label>
+            <div id="specGroups">
+                <script>var existingOptions = {{ dish.extra_options|default('[]')|safe }};</script>
+                <!-- 动态添加规格组 -->
+            </div>
+            <button type="button" id="addSpecGroup" class="btn btn-sm btn-outline-primary">+ 添加规格组</button>
+        </div>
+        <button type="submit" class="btn btn-primary">保存</button>
+        <a href="/admin/dishes" class="btn btn-secondary">取消</a>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.js"></script>
+<script>
+    let cropper = null;
+    const imageInput = document.getElementById('imageInput');
+    const cropContainer = document.getElementById('cropContainer');
+    const cropBtn = document.getElementById('cropBtn');
+
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                cropContainer.innerHTML = `<img id="cropImage" src="${event.target.result}" style="max-width:100%;">`;
+                cropContainer.style.display = 'block';
+                cropBtn.style.display = 'inline-block';
+                const image = document.getElementById('cropImage');
+                if (cropper) cropper.destroy();
+                cropper = new Cropper(image, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 1,
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    cropBtn.addEventListener('click', function() {
+        if (cropper) {
+            const canvas = cropper.getCroppedCanvas();
+            const croppedDataURL = canvas.toDataURL('image/jpeg');
+            // 将裁剪后的数据转为blob，重新放入input? 实际后端处理时，我们传递裁剪坐标，前端展示裁剪预览，后端再裁剪。
+            // 简便起见，我们只保存坐标，后端处理。
+            const data = cropper.getData();
+            document.getElementById('crop_x').value = Math.round(data.x);
+            document.getElementById('crop_y').value = Math.round(data.y);
+            document.getElementById('crop_width').value = Math.round(data.width);
+            document.getElementById('crop_height').value = Math.round(data.height);
+            alert('裁剪坐标已记录，保存时会上传原图并裁剪');
+        }
+    });
+
+    // 规格组动态管理
+    function addSpecGroup(groupData = null) {
+        const idx = Date.now();
+        const div = document.createElement('div');
+        div.className = 'card mb-2 p-2';
+        div.innerHTML = `
+            <div class="row g-2">
+                <div class="col-4"><input type="text" name="opt_name[]" class="form-control form-control-sm" placeholder="组名 (如口味)" value="${groupData ? groupData.name : ''}"></div>
+                <div class="col-3">
+                    <select name="opt_type[]" class="form-select form-select-sm">
+                        <option value="radio" ${groupData && groupData.type === 'radio' ? 'selected' : ''}>单选</option>
+                        <option value="checkbox" ${groupData && groupData.type === 'checkbox' ? 'selected' : ''}>多选</option>
+                    </select>
+                </div>
+                <div class="col-4"><input type="text" name="opt_options[]" class="form-control form-control-sm" placeholder="选项用英文逗号分隔" value="${groupData ? groupData.options.join(',') : ''}"></div>
+                <div class="col-1"><button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.parentElement.parentElement.remove()">✖</button></div>
+            </div>
+        `;
+        document.getElementById('specGroups').appendChild(div);
+    }
+
+    if (existingOptions && existingOptions.length) {
+        existingOptions.forEach(opt => addSpecGroup(opt));
+    }
+    document.getElementById('addSpecGroup').onclick = () => addSpecGroup();
+</script>
+</body>
+</html>
