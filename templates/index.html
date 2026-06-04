@@ -252,8 +252,11 @@
                     let select = document.getElementById('historySelect'); select.innerHTML = '<option value="">-- 请选择周 --</option>';
                     data.history.forEach(h => {
                         let opt = document.createElement('option');
-                        opt.value = h.txt_content;
-                        opt.innerText = `${formatChineseDate(h.week_sunday)}一周`;
+                        opt.value = h.txt_content || '（暂无记录内容）';
+                        const sun = new Date(h.week_sunday);
+                        const mon = new Date(sun); mon.setDate(sun.getDate() + 1);
+                        const sat = new Date(sun); sat.setDate(sun.getDate() + 6);
+                        opt.innerText = `${mon.getMonth()+1}月${mon.getDate()}日～${sat.getMonth()+1}月${sat.getDate()}日一周`;
                         select.appendChild(opt);
                     });
                     document.getElementById('historyContent').innerText = '';

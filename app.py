@@ -15,8 +15,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'family-canteen-secret-key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///canteen.db'   # SQLite 文件存在 instance/ 目录
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = 'static/uploads'     # 菜品图片上传目录（需在项目根目录运行）
-app.config['ORDERS_FOLDER'] = 'orders_txt'          # 可打印的中文订单 TXT 存放目录
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+app.config['UPLOAD_FOLDER'] = os.path.join(_APP_DIR, 'static', 'uploads')
+app.config['ORDERS_FOLDER'] = os.path.join(_APP_DIR, 'orders_txt')
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 上传图片限制 5 MB
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
