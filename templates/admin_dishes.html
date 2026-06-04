@@ -20,11 +20,12 @@
         .table-bordered > :not(caption) > * > * { border-color: #e8d8a0; }
         .table-striped > tbody > tr:nth-of-type(odd) > * { --bs-table-accent-bg: rgba(234,215,155,0.1); }
         @media (max-width: 767px) {
-            .container { padding-left: 6px !important; padding-right: 6px !important; }
-            .table { font-size: 0.92rem; }
-            .table td, .table th { padding: 0.28rem 0.22rem; }
-            .dish-img-thumb { width: 38px; height: 38px; }
-            h1 { font-size: 1.3rem; }
+            .container { padding-left: 8px !important; padding-right: 8px !important; }
+            .table { font-size: 0.82rem; }
+            .table td, .table th { padding: 0.22rem 0.2rem; }
+            .dish-img-thumb { width: 36px; height: 36px; }
+            h1 { font-size: 1.2rem; }
+            .hide-mobile { display: none !important; }
         }
     </style>
 </head>
@@ -38,14 +39,15 @@
         </div>
     </div>
     <input type="text" id="searchInput" class="form-control mb-3" placeholder="搜索菜名...">
+    <div class="table-responsive">
     <table class="table table-bordered table-striped">
         <thead>
-            <tr><th>ID</th><th>图片</th><th>菜名</th><th>分类</th><th>便当兼容</th><th>预处理天数</th><th>烹饪分钟</th><th>操作</th></tr>
+            <tr><th class="hide-mobile">ID</th><th>图片</th><th>菜名</th><th>分类</th><th>便当</th><th class="hide-mobile">预处理天</th><th class="hide-mobile">烹饪分钟</th><th>操作</th></tr>
         </thead>
         <tbody id="dishTableBody">
             {% for dish in dishes %}
             <tr class="dish-row">
-                <td>{{ dish.id }}</td>
+                <td class="hide-mobile">{{ dish.id }}</td>
                 <td><img src="{{ '/' + dish.image_url if dish.image_url else '/static/img/placeholder.png' }}" class="dish-img-thumb" onerror="this.src='/static/img/placeholder.png'"></td>
                 <td class="dish-name">{{ dish.name }}</td>
                 <td>
@@ -58,8 +60,8 @@
                     {% endfor %}
                 </td>
                 <td>{% if dish.bento_compatible %}✅{% else %}❌{% endif %}</td>
-                <td>{{ dish.preprocess_days }}</td>
-                <td>{{ dish.cook_minutes }}</td>
+                <td class="hide-mobile">{{ dish.preprocess_days }}</td>
+                <td class="hide-mobile">{{ dish.cook_minutes }}</td>
                 <td>
                     <a href="/admin/dish/{{ dish.id }}" class="btn btn-sm btn-warning">编辑</a>
                     <a href="/admin/dish/delete/{{ dish.id }}" class="btn btn-sm btn-danger" onclick="return confirm('确定删除？')">删除</a>
@@ -68,6 +70,7 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 <script>
     document.getElementById('searchInput').addEventListener('input', function() {
