@@ -21,7 +21,7 @@
             .container { max-width: 100% !important; padding-left: 14px !important; padding-right: 14px !important; }
             h1 { font-size: 1.2rem; }
             .table { font-size: 0.8rem; }
-            .table td, .table th { padding: 0.25rem 0.3rem; }
+            .table td, .table th { padding: 0.25rem 0.3rem; white-space: nowrap; }
             .btn-sm { font-size: 0.72rem; padding: 0.18rem 0.35rem; }
         }
     </style>
@@ -36,18 +36,24 @@
     <table class="table table-bordered table-striped">
         <thead>
             <tr>
-                <th>提交时间</th><th>订餐人</th><th>点菜周（周日起）</th><th>操作</th>
+                <th>提交时间</th>
+                <th>订餐人</th>
+                <th><span class="d-none d-md-inline">点菜周（周日起）</span><span class="d-inline d-md-none">点菜周</span></th>
+                <th>操作</th>
             </tr>
         </thead>
         <tbody>
             {% for order in orders %}
             <tr>
-                <td>{{ '%04d-%02d-%02d %02d:%02d' | format(order.submitted_at.year, order.submitted_at.month, order.submitted_at.day, order.submitted_at.hour, order.submitted_at.minute) }}</td>
-                <td>{{ order.customer_name }}</td>
-                <td>{{ order.week_sunday.year }}年{{ order.week_sunday.month }}月{{ order.week_sunday.day }}日</td>
                 <td>
-                    <a href="/admin/download_txt/{{ order.txt_filename }}" class="btn btn-sm btn-success">下载TXT</a>
-                    <button class="btn btn-sm btn-info" onclick="viewOrder('{{ order.txt_filename }}')">查看详情</button>
+                    <span class="d-none d-md-inline">{{ '%04d-%02d-%02d %02d:%02d' | format(order.submitted_at.year, order.submitted_at.month, order.submitted_at.day, order.submitted_at.hour, order.submitted_at.minute) }}</span>
+                    <span class="d-inline d-md-none">{{ '%02d-%02d-%02d' | format(order.submitted_at.year % 100, order.submitted_at.month, order.submitted_at.day) }}</span>
+                </td>
+                <td>{{ order.customer_name }}</td>
+                <td>{{ '%04d-%02d-%02d' | format(order.week_sunday.year, order.week_sunday.month, order.week_sunday.day) }}</td>
+                <td>
+                    <a href="/admin/download_txt/{{ order.txt_filename }}" class="btn btn-sm btn-success"><span class="d-none d-md-inline">下载TXT</span><span class="d-inline d-md-none">下载</span></a>
+                    <button class="btn btn-sm btn-info" onclick="viewOrder('{{ order.txt_filename }}')"><span class="d-none d-md-inline">查看详情</span><span class="d-inline d-md-none">查看</span></button>
                 </td>
             </tr>
             {% endfor %}
