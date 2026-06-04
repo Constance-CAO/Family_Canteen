@@ -19,6 +19,13 @@
         .table thead th { background: #faefc9; color: #7a5c1e; font-weight: 600; border-color: #e8d8a0; }
         .table-bordered > :not(caption) > * > * { border-color: #e8d8a0; }
         .table-striped > tbody > tr:nth-of-type(odd) > * { --bs-table-accent-bg: rgba(234,215,155,0.1); }
+        @media (max-width: 767px) {
+            .container { padding-left: 6px !important; padding-right: 6px !important; }
+            .table { font-size: 0.92rem; }
+            .table td, .table th { padding: 0.28rem 0.22rem; }
+            .dish-img-thumb { width: 38px; height: 38px; }
+            h1 { font-size: 1.3rem; }
+        }
     </style>
 </head>
 <body>

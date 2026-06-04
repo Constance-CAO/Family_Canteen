@@ -27,7 +27,7 @@
     <table class="table table-bordered table-striped">
         <thead>
             <tr>
-                <th>提交时间</th><th>订餐人</th><th>点菜周（周一）</th><th>操作</th>
+                <th>提交时间</th><th>订餐人</th><th>点菜周（周日起）</th><th>操作</th>
             </tr>
         </thead>
         <tbody>
@@ -35,7 +35,7 @@
             <tr>
                 <td>{{ '%04d-%02d-%02d %02d:%02d' | format(order.submitted_at.year, order.submitted_at.month, order.submitted_at.day, order.submitted_at.hour, order.submitted_at.minute) }}</td>
                 <td>{{ order.customer_name }}</td>
-                <td>{{ order.week_monday.year }}年{{ order.week_monday.month }}月{{ order.week_monday.day }}日</td>
+                <td>{{ order.week_sunday.year }}年{{ order.week_sunday.month }}月{{ order.week_sunday.day }}日</td>
                 <td>
                     <a href="/admin/download_txt/{{ order.txt_filename }}" class="btn btn-sm btn-success">下载TXT</a>
                     <button class="btn btn-sm btn-info" onclick="viewOrder('{{ order.txt_filename }}')">查看详情</button>

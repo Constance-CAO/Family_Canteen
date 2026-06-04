@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>熊家菜谱</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%; margin: 0; overflow: hidden;
+            background: #fef7e8; color: #3a2800;
+            font-family: 'Segoe UI','Noto Sans SC',system-ui;
+        }
+        body { display: flex; flex-direction: column; }
+
+        .menu-topbar {
+            background: linear-gradient(90deg, #faefc9 0%, #f5e4a8 100%);
+            border-bottom: 1px solid #e8d8a0;
+            padding: 10px 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .menu-topbar h1 { font-size: 1.3rem; font-weight: 700; color: #3a2800; margin: 0; }
+        .back-btn {
+            background: #e9b741; border: none; border-radius: 40px;
+            padding: 7px 20px; font-size: 0.9rem; font-weight: 600;
+            color: #3a2800; text-decoration: none; transition: background 0.18s;
+            box-shadow: 0 2px 8px rgba(180,130,20,0.2);
+        }
+        .back-btn:hover { background: #d4a12b; color: #3a2800; }
+
+        #menuWrap {
+            flex: 1;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 8px 12px;
+            overflow: hidden;
+            gap: 10px;
+        }
+
+        .flip-nav {
+            display: flex; align-items: center; gap: 28px;
+            flex-shrink: 0;
+        }
+        .flip-nav-btn {
+            background: #e9b741; border: none; border-radius: 40px;
+            padding: 8px 28px; font-size: 1rem; font-weight: 600;
+            color: #3a2800; cursor: pointer; transition: background 0.18s;
+            box-shadow: 0 2px 10px rgba(180,130,20,0.22);
+        }
+        .flip-nav-btn:hover:not(:disabled) { background: #d4a12b; }
+        .flip-nav-btn:disabled { opacity: 0.32; cursor: not-allowed; }
+        #menuPageInfo { font-size: 1rem; color: #7a5c1e; min-width: 100px; text-align: center; }
+
+        .key-hint { font-size: 0.78rem; color: #b09050; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<div class="menu-topbar">
+    <h1>📖 熊家菜谱</h1>
+    <a href="/" class="back-btn">← 返回首页</a>
+</div>
+
+<div id="menuWrap">
+    <div id="flipBook"></div>
+    <div class="flip-nav">
+        <button class="flip-nav-btn" id="menuPrevBtn" disabled>‹ 上一页</button>
+        <span id="menuPageInfo">1 – 2 / 11</span>
+        <button class="flip-nav-btn" id="menuNextBtn">下一页 ›</button>
+    </div>
+    <div class="key-hint">💡 也可拖拽页角或按键盘 ← → 翻页</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+<script>
+    const files = [
+        '1_荤菜猪1.jpg','2_荤菜猪2.jpg','3_荤菜猪3.jpg','4_荤菜牛1.jpg',
+        '5_荤菜羊1蛋1.jpg','6_荤菜鸡1.jpg','7_荤菜海鲜1.jpg','8_素菜1.jpg',
+        '9_凉菜1.jpg','10_主食1.jpg','11_汤1.jpg'
+    ];
+    const total = files.length;
+    const flipEl = document.getElementById('flipBook');
+
+    // 先量好导航栏和提示文字的高度，再算可用空间
+    const topbarH = document.querySelector('.menu-topbar').offsetHeight;
+    const navH    = document.querySelector('.flip-nav').offsetHeight;
+    const hintH   = document.querySelector('.key-hint').offsetHeight;
+    // 8px上下padding + 10px*2 gap
+    const overhead = topbarH + navH + hintH + 8 * 2 + 10 * 2;
+    const availH = window.innerHeight - overhead;
+    const availW = window.innerWidth - 24; // 左右各12px padding
+
+    // 页面比例 h = w * 1.42；左右双页，总宽 = pageW * 2
+    let pageH = Math.floor(availH);
+    let pageW = Math.floor(pageH / 1.42);
+    if (pageW * 2 > availW) {
+        pageW = Math.floor(availW / 2);
+        pageH = Math.floor(pageW * 1.42);
+    }
+    pageW = Math.max(pageW, 80);
+    pageH = Math.max(pageH, 100);
+
+    // 构建页面元素
+    files.forEach(f => {
+        const page = document.createElement('div');
+        page.className = 'page';
+        const img = document.createElement('img');
+        img.src = '/static/menu/' + encodeURIComponent(f);
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+        page.appendChild(img);
+        flipEl.appendChild(page);
+    });
+
+    const pf = new St.PageFlip(flipEl, {
+        width: pageW, height: pageH,
+        showCover: false,
+        usePortrait: false,
+        startPage: 0,
+        maxShadowOpacity: 0.5,
+        mobileScrollSupport: false,
+        swipeDistance: 20,
+        showPageCorners: true,
+        clickEventForward: true,
+    });
+    pf.loadFromHTML(document.querySelectorAll('.page'));
+
+    const prevBtn = document.getElementById('menuPrevBtn');
+    const nextBtn = document.getElementById('menuNextBtn');
+    const pageInfo = document.getElementById('menuPageInfo');
+
+    function updateNav() {
+        const cur = pf.getCurrentPageIndex();
+        const p1 = cur + 1, p2 = Math.min(cur + 2, total);
+        pageInfo.textContent = p1 === p2 ? `${p1} / ${total}` : `${p1} – ${p2} / ${total}`;
+        prevBtn.disabled = cur === 0;
+        nextBtn.disabled = cur >= total - 2;
+    }
+
+    pf.on('flip', updateNav);
+    pf.on('changeState', updateNav);
+    prevBtn.onclick = () => pf.flipPrev();
+    nextBtn.onclick = () => pf.flipNext();
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowLeft')  pf.flipPrev();
+        if (e.key === 'ArrowRight') pf.flipNext();
+    });
+
+    updateNav();
+</script>
+</body>
+</html>

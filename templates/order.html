@@ -51,9 +51,9 @@
 </head>
 <body>
 <div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3><span style="background:#faefc9; color:#3a2800; padding:6px 14px; border-radius:20px; border:1px solid #e8d8a0; font-weight:700; font-size:1.1rem;">🐻 熊家食堂 · 点菜</span></h3>
-        <div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h3 class="mb-0"><span style="background:#faefc9; color:#3a2800; padding:6px 14px; border-radius:20px; border:1px solid #e8d8a0; font-weight:700; font-size:1.1rem;">🐻 熊家食堂 · 点菜</span></h3>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
             <span style="background:#e9b741; color:#3a2800; padding:4px 12px; border-radius:20px; font-size:0.85rem; font-weight:600;" id="customerNameDisplay"></span>
             <span style="background:#faefc9; color:#7a5c1e; padding:4px 12px; border-radius:20px; font-size:0.85rem; border:1px solid #e8d8a0;" id="weekRangeDisplay"></span>
         </div>
@@ -71,7 +71,7 @@
 
         <!-- 右侧菜谱区 -->
         <div class="col-md-6 col-lg-5">
-            <div class="card sticky-top" style="border-radius: 28px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+            <div class="card sticky-top" style="border-radius: 28px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden;">
                 <div class="card-header bg-white border-0 pt-3">
                     <ul class="nav nav-tabs card-header-tabs" id="mainCategoryTabs" role="tablist"></ul>
                 </div>
@@ -117,10 +117,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // 获取URL参数 (week_monday)
+    // 获取URL参数 (week_sunday)
     const urlParams = new URLSearchParams(window.location.search);
     const customerName = decodeURIComponent(urlParams.get('customer') || '大熊');
-    const weekMondayStr = urlParams.get('week_monday');   // 格式 YYYY-MM-DD
+    const weekSundayStr = urlParams.get('week_sunday');   // 格式 YYYY-MM-DD（该周周日）
     let existingOrderRaw = urlParams.get('existing');
     let existingOrderData = null;
     if (existingOrderRaw) {
@@ -130,6 +130,7 @@
             // 服务器侧 order_data 存的是 {days: [...]}；预填充需要 dayIdx 映射
             if (existingOrderData && existingOrderData.days) {
                 const map = {};
+                // 将数组转为 {0:…, 1:…} 数字键对象，便于后续用 dayIdx 直接取值而无需再 find
                 existingOrderData.days.forEach((d, i) => { map[i] = {
                     mode: d.mode || '熊山洞开小灶',
                     dish1: d.dish1 || '', dish2: d.dish2 || '', staple: d.staple || '',
@@ -140,7 +141,7 @@
         } catch (e) { existingOrderData = null; }
     }
 
-    if (!weekMondayStr) {
+    if (!weekSundayStr) {
         alert('缺少点餐周参数，返回首页');
         window.location.href = '/';
     }
@@ -148,19 +149,21 @@
     let allDishes = [];
     let categoriesTree = [];
     let allCategoriesFlat = [];
+    // 用 Set 而非数组，使 has() 查找为 O(1)，每次渲染菜品列表时都会批量判断
     let stapleCatIds = new Set();   // 主食大类及其子分类的 ID
     let currentMainCat = null;
     let currentSubCat = null;
+    // 点击菜品时只填入"最后聚焦的输入框"，避免多个输入框同时监听点击事件产生歧义
     let currentFocusSlot = null;  // {dayIdx, slotType}
     let selectedOrder = {};
 
     const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六'];
-    // 根据周一日期计算周一~周六的日期对象
-    let mondayDate = weekMondayStr ? parseLocalYMD(weekMondayStr) : new Date();
+    // 根据周日日期计算周一~周六的日期对象（周日 +1 到 +6）
+    let sundayDate = weekSundayStr ? parseLocalYMD(weekSundayStr) : new Date();
     let weekDates = [];
-    for (let i = 0; i < 6; i++) {
-        let d = new Date(mondayDate);
-        d.setDate(mondayDate.getDate() + i);
+    for (let i = 1; i <= 6; i++) {
+        let d = new Date(sundayDate);
+        d.setDate(sundayDate.getDate() + i);
         weekDates.push(d);
     }
 
@@ -380,12 +383,14 @@
 
     function isPreprocessReady(dish, dayIdx, mode) {
         // dayIdx: 0=周日(第1天), 1=周一(第2天), ..., 6=周六(第7天)
-        const daySinceSunday = dayIdx + 1;
+        const daySinceSunday = dayIdx + 1; // dayIdx 从 0 表示周一，+1 换算成距上周日的天数（周一=1，周六=6）
         const D = dish.preprocess_days || 0;
         if (D <= 0) return true;
         if (mode === '熊山洞开小灶') {
+            // 当天烹饪：当天距周日天数 ≥ 预处理天数即可（D 天前开始，当天吃）
             return daySinceSunday >= D; // 可用日期 ≥ 周日 + (D-1)，即 daySinceSunday ≥ D
         } else {
+            // 爱心便当需前一晚打包：需比小灶多预留1天，所以门槛 +1
             return daySinceSunday >= D + 1; // 爱心便当 ≥ 周日 + D
         }
     }
@@ -574,6 +579,7 @@
                 if (currentSubCat) renderDishes(currentSubCat.id);
                 else if (currentMainCat) renderDishes(currentMainCat.id);
             });
+            // 手动输入后需验证名称是否存在于菜谱，防止提交无效菜名；blur/Enter 时触发
             const triggerMatch = () => {
                 const day = parseInt(input.dataset.day);
                 const slot = input.dataset.slot;
@@ -641,6 +647,7 @@
 
     // 提交订单
     document.getElementById('submitOrderBtn').onclick = () => {
+        // 便当必须有两道菜+主食（食材完整才能打包）；小灶只强制主食（菜可以灵活）；出去觅食/特殊事件无需点菜
         for (let i = 0; i < 6; i++) {
             const mode = selectedOrder[i].mode;
             if (mode === '爱心便当') {
@@ -675,7 +682,7 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 customer_name: customerName,
-                week_monday: weekMondayStr,
+                week_sunday: weekSundayStr,
                 order_data: orderPayload
             })
         }).then(res => res.json()).then(data => {
