@@ -1,21 +1,7 @@
-# 数据库（含真实点单数据，不入库）
-instance/canteen.db
-instance/canteen.db.bak
-instance/
-
-# 用户上传的菜品图片（部署时自行上传）
-static/uploads/
-
-# 点单 TXT 文件（个人数据）
-orders_txt/
-
 # Python 缓存
 __pycache__/
 *.pyc
 *.pyo
-
-# 环境变量
-.env
 
 # 系统文件
 .DS_Store
